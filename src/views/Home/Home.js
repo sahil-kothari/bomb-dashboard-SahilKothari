@@ -180,12 +180,14 @@ const Home = () => {
       <BackgroundImage />
       <Grid container spacing={3}>
         {/* Logo */}
+        
         <Grid
           item
           xs={12}
           sm={4}
-          style={{ display: 'flex', justifyContent: 'center', verticalAlign: 'middle', overflow: 'hidden' }}
+          style={{ display: 'flex', justifyContent: 'center', verticalAlign: 'middle' ,overflow: 'hidden'}}
         >
+         
           <img src={BombImage} alt="Bomb.money" style={{ maxHeight: '240px' }} />
         </Grid>
         {/* Explanation text */}
