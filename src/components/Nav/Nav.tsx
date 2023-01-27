@@ -113,7 +113,7 @@ const Nav = () => {
   );
 
   return (
-    <AppBar position="sticky" elevation={0} className={classes.appBar}>
+    <AppBar position="relative" elevation={0} className={classes.appBar}>
       <Toolbar className={classes.toolbar}>
         {matches ? (
           <>
