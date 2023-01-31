@@ -32,19 +32,23 @@ const BackgroundImage = createGlobalStyle`
 `;
 const TITLE = 'bomb.money | Bonds'
 
+
+
+
 const Bond: React.FC = () => {
   const {path} = useRouteMatch();
-  const bombFinance = useBombFinance();
-  const addTransaction = useTransactionAdder();
   const bondStat = useBondStats();
   //const bombStat = useBombStats();
   const cashPrice = useCashPriceInLastTWAP();
+  
+  const bombFinance = useBombFinance();
+  const addTransaction = useTransactionAdder();
 
   const bondsPurchasable = useBondsPurchasable();
 
   const bondBalance = useTokenBalance(bombFinance?.BBOND);
   //const scalingFactor = useMemo(() => (cashPrice ? Number(cashPrice) : null), [cashPrice]);
-
+  
   const handleBuyBonds = useCallback(
     async (amount: string) => {
       const tx = await bombFinance.buyBonds(amount);
@@ -54,7 +58,7 @@ const Bond: React.FC = () => {
     },
     [bombFinance, addTransaction],
   );
-
+  
   const handleRedeemBonds = useCallback(
     async (amount: string) => {
       const tx = await bombFinance.redeemBonds(amount);

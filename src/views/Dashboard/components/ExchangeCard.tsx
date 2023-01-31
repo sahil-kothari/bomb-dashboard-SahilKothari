@@ -32,7 +32,7 @@ interface ExchangeCardProps {
   disabledDescription?: string;
 }
 
-export const ExchangeCard: React.FC<ExchangeCardProps> = ({
+const ExchangeCard: React.FC<ExchangeCardProps> = ({
   action,
   fromToken,
   fromTokenName,

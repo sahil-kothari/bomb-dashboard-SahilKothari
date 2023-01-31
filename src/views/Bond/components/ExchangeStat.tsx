@@ -9,7 +9,7 @@ interface ExchangeStatProps {
   price: string;
 }
 
-const ExchangeStat: React.FC<ExchangeStatProps> = ({tokenName, description, price}) => {
+export const ExchangeStat: React.FC<ExchangeStatProps> = ({tokenName, description, price}) => {
   return (
     <Card>
       <StyledCardContentInner>

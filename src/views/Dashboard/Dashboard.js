@@ -1,10 +1,33 @@
-import React from 'react'
+//import React from 'react'
 import useTotalValueLocked from '../../hooks/useTotalValueLocked';
 import useStakedBalanceOnBoardroom from '../../hooks/useStakedBalanceOnBoardroom';
 import useBondsPurchasable from '../../hooks/useBondsPurchasable';
 import {getDisplayBalance} from '../../utils/formatBalance';
 import useBondStats from '../../hooks/useBondStats';
-import ExchangeStat from './ExchangeStat';
+import ExchangeStat from './components/ExchangeStat';
+import styled from 'styled-components';
+import useTotalStakedOnBoardroom from '../../hooks/useTotalStakedOnBoardroom';
+import useBombFinance from '../../hooks/useBombFinance';
+import React, {useCallback, useMemo} from 'react';
+import useCashPriceInLastTWAP from '../../hooks/useCashPriceInLastTWAP';
+import useEarningsOnBoardroom from '../../hooks/useEarningsOnBoardroom';
+import { BOND_REDEEM_PRICE, BOND_REDEEM_PRICE_BN } from '../../bomb-finance/constants';
+import {useTransactionAdder} from '../../state/transactions/hooks';
+import useFetchBoardroomAPR from '../../hooks/useFetchBoardroomAPR';
+import ExchangeCard from './components/ExchangeCard';
+//import {handleBuyBonds} from '../../bond/Bond';
+
+
+  // const handleBuyBonds = useCallback(
+  //   async (amount: string) => {
+  //     const tx = await bombFinance.buyBonds(amount);
+  //     addTransaction(tx, {
+  //       summary: `Buy ${Number(amount).toFixed(2)} BBOND with ${amount} BOMB`,
+  //     });
+  //   },
+  //   [bombFinance, addTransaction],
+  // );
+  
 
 function Dashboard() {
 
@@ -12,7 +35,26 @@ function Dashboard() {
   const stakedBalance = useStakedBalanceOnBoardroom();
   const bondsPurchasable = useBondsPurchasable();
   const bondStat = useBondStats();
+  const bombFinance = useBombFinance();
+  const cashPrice = useCashPriceInLastTWAP();
+  const totalStaked = useTotalStakedOnBoardroom();
+  const earnings = useEarningsOnBoardroom();
+  const boardroomAPR = useFetchBoardroomAPR();
+  //const stakedBalance = useStakedBalanceOnBoardroom();
+  const addTransaction = useTransactionAdder();
+  const isBondRedeemable = useMemo(() => cashPrice.gt(BOND_REDEEM_PRICE_BN), [cashPrice]);
+  const isBondPurchasable = useMemo(() => Number(bondStat?.tokenInFtm) < 1.01, [bondStat]);
+  const isBondPayingPremium = useMemo(() => Number(bondStat?.tokenInFtm) >= 1.1, [bondStat]);
 
+  
+const StyledCardWrapper = styled.div`
+display: flex;
+flex: 1;
+flex-direction: column;
+@media (max-width: 768px) {
+  width: 80%;
+}
+`;
 
   return (
     <div className="h-screen w-full">
@@ -22,8 +64,9 @@ function Dashboard() {
             
               <button
                 type="button"
-                className="w-full px-6  py-2.5 border-2 solid text-white font-medium text-xs leading-tight uppercase shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-blue-800 active:shadow-lg transition duration-150 ease-in-out"
+                className="w-full px-6  py-2.5 border-2 solid text-white font-medium text-xs leading-tight uppercase shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-blue-800 active:shadow-lg transition duration-150 ease-in-out"         
               >
+                
                 Invest Now
               </button>
             
@@ -56,8 +99,9 @@ function Dashboard() {
                 <span className="bg-green-500 text-white rounded-md py-1 mb-2 ml-4 px-2 mr-3 ">
                   Recommended
                 </span>
-                <div className="w-2/3"></div>
-                <span className="text-white text-lg">TVL: {TVL} </span>
+                <div className="w-1/3"></div>
+                <span className="text-white text-lg">TVL: {TVL} <br></br> Total staked: {getDisplayBalance(totalStaked)} </span>
+                {/* <span classname="text-white text-lg">Total staked: </span> */}
               </div>
               <p class="text-gray-100 text-base mb-4">
                 Stake BSHARE and earn BOMB every epoch
@@ -89,8 +133,9 @@ function Dashboard() {
                   </div>
                   </div>
                 </div>
-                <div className="text-xl text-slate-300">2%</div>
-                <div className="text-xl text-slate-300">456</div>
+                <div className="text-xl text-slate-300">{boardroomAPR.toFixed(2)}%</div>
+                <div className="text-xl text-slate-300">{getDisplayBalance(stakedBalance)}</div>
+                <div className="text-xl text-slate-300">{getDisplayBalance(earnings)}</div>
               </div>
             </div>
           </div>
@@ -156,7 +201,7 @@ function Dashboard() {
 
           <div className='p-6'>
             <div className="flex mb-2 mt-16">
-              <p className="text-4xl font-semibold text-white">BOMB-BTCB</p>
+              <p className="text-4xl font-semibold text-white">BSHARES-BNB</p>
               <span className="bg-green-500 text-white rounded-md py-1 mb-2 ml-4 px-2 mr-3 ">
                 Recommended
               </span>
@@ -245,5 +290,29 @@ function Dashboard() {
     </div>
   );
 }
+
+
+// const StyledCardWrapper = styled.div`
+//   display: flex;
+//   flex: 1;
+//   flex-direction: column;
+//   @media (max-width: 768px) {
+//     width: 80%;
+//   }
+// `;
+
+
+const StyledStatsWrapper = styled.div`
+  display: flex;
+  flex: 0.8;
+  margin: 0 20px;
+  flex-direction: column;
+
+  @media (max-width: 768px) {
+    width: 80%;
+    margin: 16px 0;
+  }
+`;
+
 
 export default Dashboard

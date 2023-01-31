@@ -17,7 +17,7 @@ interface ExchangeModalProps extends ModalProps {
   tokenName: string;
 }
 
-export const ExchangeModal: React.FC<ExchangeModalProps> = ({
+const ExchangeModal: React.FC<ExchangeModalProps> = ({
   max,
   title,
   description,
