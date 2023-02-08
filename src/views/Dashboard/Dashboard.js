@@ -4,6 +4,7 @@ import useStakedBalanceOnBoardroom from '../../hooks/useStakedBalanceOnBoardroom
 import useBondsPurchasable from '../../hooks/useBondsPurchasable';
 import {getDisplayBalance} from '../../utils/formatBalance';
 import useBondStats from '../../hooks/useBondStats';
+import useBombStats from '../../hooks/useBombStats';
 import ExchangeStat from './components/ExchangeStat';
 import styled from 'styled-components';
 import useTotalStakedOnBoardroom from '../../hooks/useTotalStakedOnBoardroom';
@@ -11,10 +12,23 @@ import useBombFinance from '../../hooks/useBombFinance';
 import React, {useCallback, useMemo} from 'react';
 import useCashPriceInLastTWAP from '../../hooks/useCashPriceInLastTWAP';
 import useEarningsOnBoardroom from '../../hooks/useEarningsOnBoardroom';
+import useApprove, {ApprovalState} from '../../hooks/useApprove';
 import { BOND_REDEEM_PRICE, BOND_REDEEM_PRICE_BN } from '../../bomb-finance/constants';
 import {useTransactionAdder} from '../../state/transactions/hooks';
 import useFetchBoardroomAPR from '../../hooks/useFetchBoardroomAPR';
+import useHarvestFromBoardroom from '../../hooks/useHarvestFromBoardroom';
+import useClaimRewardCheck from '../../hooks/boardroom/useClaimRewardCheck';
+import usebShareStats from '../../hooks/usebShareStats';
+import {Box, Button, Card, CardContent, Typography} from '@material-ui/core';
 import ExchangeCard from './components/ExchangeCard';
+import './Dashboard.css';
+import ProgressCountdown from './components/ProgressCountdown';
+import moment from 'moment';
+import useTreasuryAllocationTimes from '../../hooks/useTreasuryAllocationTimes';
+import useCurrentEpoch from '../../hooks/useCurrentEpoch';
+import CountUp from 'react-countup';
+import useCashPriceInEstimatedTWAP from '../../hooks/useCashPriceInEstimatedTWAP';
+import { roundAndFormatNumber } from '../../0x';
 //import {handleBuyBonds} from '../../bond/Bond';
 
 
@@ -31,20 +45,67 @@ import ExchangeCard from './components/ExchangeCard';
 
 function Dashboard() {
 
-  const TVL = useTotalValueLocked();
-  const stakedBalance = useStakedBalanceOnBoardroom();
+  const addTransaction = useTransactionAdder();
   const bondsPurchasable = useBondsPurchasable();
   const bondStat = useBondStats();
+  const bombStats = useBombStats();
+  const tBondStats = useBondStats();
   const bombFinance = useBombFinance();
-  const cashPrice = useCashPriceInLastTWAP();
-  const totalStaked = useTotalStakedOnBoardroom();
-  const earnings = useEarningsOnBoardroom();
   const boardroomAPR = useFetchBoardroomAPR();
+  const bShareStats = usebShareStats();
+  const bombPriceInBNB = useMemo(() => (bombStats ? Number(bombStats.tokenInFtm).toFixed(4) : null), [bombStats]);
+  const bombPriceInDollars = useMemo(
+    () => (bombStats ? Number(bombStats.priceInDollars).toFixed(2) : null),
+    [bombStats],
+  );
+  const bombCirculatingSupply = useMemo(() => (bombStats ? String(bombStats.circulatingSupply) : null), [bombStats]);
+  const bombTotalSupply = useMemo(() => (bombStats ? String(bombStats.totalSupply) : null), [bombStats]);
+
+  
+  const bSharePriceInDollars = useMemo(
+    () => (bShareStats ? Number(bShareStats.priceInDollars).toFixed(2) : null),
+    [bShareStats],
+  );
+  const bSharePriceInBNB = useMemo(
+    () => (bShareStats ? Number(bShareStats.tokenInFtm).toFixed(4) : null),
+    [bShareStats],
+  );
+  const bShareCirculatingSupply = useMemo(
+    () => (bShareStats ? String(bShareStats.circulatingSupply) : null),
+    [bShareStats],
+  );
+  const bShareTotalSupply = useMemo(() => (bShareStats ? String(bShareStats.totalSupply) : null), [bShareStats]);
+
+
+  const tBondPriceInDollars = useMemo(
+    () => (tBondStats ? Number(tBondStats.priceInDollars).toFixed(2) : null),
+    [tBondStats],
+  );
+  const tBondPriceInBNB = useMemo(() => (tBondStats ? Number(tBondStats.tokenInFtm).toFixed(4) : null), [tBondStats]);
+  const tBondCirculatingSupply = useMemo(
+    () => (tBondStats ? String(tBondStats.circulatingSupply) : null),
+    [tBondStats],
+  );
+  const tBondTotalSupply = useMemo(() => (tBondStats ? String(tBondStats.totalSupply) : null), [tBondStats]);
+
+
+  const cashPrice = useCashPriceInLastTWAP();
+  const cashStat = useCashPriceInEstimatedTWAP();
+  const canClaimReward = useClaimRewardCheck();
+  const currentEpoch = useCurrentEpoch();
+  const earnings = useEarningsOnBoardroom();
+  const scalingFactor = useMemo(() => (cashStat ? Number(cashStat.priceInDollars).toFixed(4) : null), [cashStat]);
+  const stakedBalance = useStakedBalanceOnBoardroom();
+  const TVL = useTotalValueLocked();
+  const totalStaked = useTotalStakedOnBoardroom();
+  const {onReward} = useHarvestFromBoardroom();
+  const [approveStatus, approve] = useApprove(bombFinance.BSHARE, bombFinance.contracts.Boardroom.address);
   //const stakedBalance = useStakedBalanceOnBoardroom();
-  const addTransaction = useTransactionAdder();
   const isBondRedeemable = useMemo(() => cashPrice.gt(BOND_REDEEM_PRICE_BN), [cashPrice]);
   const isBondPurchasable = useMemo(() => Number(bondStat?.tokenInFtm) < 1.01, [bondStat]);
   const isBondPayingPremium = useMemo(() => Number(bondStat?.tokenInFtm) >= 1.1, [bondStat]);
+  const { to } = useTreasuryAllocationTimes();
+
 
   
 const StyledCardWrapper = styled.div`
@@ -55,10 +116,82 @@ flex-direction: column;
   width: 80%;
 }
 `;
+  
+
 
   return (
     <div className="h-screen w-full">
       <div class="flex justify-center flex-col gap-4 p-8">
+
+          {/* <div id='data' className="rounded-lg shadow-xl  w-full border-opacity-30 border-2  bg-black bg-opacity-40 hover:bg-opacity-25">
+              <div className="data1">                            
+                
+              </div>
+              <div className="data2">
+
+              </div>
+
+          </div> */}
+          <div className='box_container'>
+          <div className='big_container'>
+            <div className='small_container'>
+              <div className='data_numerical1'></div>
+              <div className='data_numerical1'>Current Supply</div>
+              <div className='data_numerical1'>Total Supply</div>
+              <div className='data_numerical1'>Price</div>
+            </div>
+            <div className='small_container'>
+              <div className='data_numerical'>$BOMB</div>
+              <div className='data_numerical'>{roundAndFormatNumber(bombCirculatingSupply, 2)}</div>
+              <div className='data_numerical'>{roundAndFormatNumber(bombTotalSupply, 2)}</div>
+              <div className='data_numerical'>
+                ${bombPriceInDollars ? roundAndFormatNumber(bombPriceInDollars, 2) : '-.--'}
+                <br></br>
+                {bombPriceInBNB ? bombPriceInBNB : '-.----'} BTC
+              </div>
+            </div>
+            <div className='small_container'>
+              <div className='data_numerical'>$BSHARE</div>
+              <div className='data_numerical'>{roundAndFormatNumber(bShareCirculatingSupply, 2)}</div>
+              <div className='data_numerical'>{roundAndFormatNumber(bShareTotalSupply, 2)}</div>
+              <div className='data_numerical'>
+                ${bSharePriceInDollars ? bSharePriceInDollars : '-.--'}
+                <br></br>
+                {bSharePriceInBNB ? bSharePriceInBNB : '-.----'}
+              </div>
+            </div>
+            <div className='small_container'>
+              <div className='data_numerical'>$BBOND</div>
+              <div className='data_numerical'>{roundAndFormatNumber(tBondCirculatingSupply, 2)}</div>
+              <div className='data_numerical'>{roundAndFormatNumber(tBondTotalSupply, 2)}</div>
+              <div className='data_numerical'>
+                ${tBondPriceInDollars ? tBondPriceInDollars : '-.--'}
+                <br></br>
+                {tBondPriceInBNB ? tBondPriceInBNB : '-.----'} BTC
+              </div>
+            </div>
+
+          </div>
+
+            <div className='big_container'>
+                 <div className='inner_container'>
+                    <div className='item_container'>Current Epoch</div>
+                    <div className='item_container'>{Number(currentEpoch)}</div>
+                 </div>
+                 <div className='inner_container'>
+                    <div className='item_container'>Next Epoch in</div>
+                    <div className='item_container'><ProgressCountdown base={moment().toDate()} hideBar={true} deadline={to} description="Next Epoch" /></div>
+                 </div>
+                 <div className='inner_container'>
+                    <div className='item_container'>Live twap : {scalingFactor}</div>
+                    <div className='item_container'>TVL : <CountUp style={{ fontSize: '15px' }} end={TVL} separator="," prefix="$" /></div>
+                    <div className='item_container'>Last Epoch Twap</div>
+                 </div>
+            </div>
+         
+          </div>
+
+
         <div className="grid grid-cols-3 gap-4 py-2 shadow-xl w-full bg-black bg-opacity-40 hover:bg-opacity-25">
           <div className="col-span-2 flex flex-col h-full gap-2">
             
@@ -112,24 +245,33 @@ flex-direction: column;
                 <div className="">Earned </div>
                 <div className="flex flex-col justify-around content-center gap-4 row-span-2">
                   <div className="w-full flex justify-between items-center">
-                    <span>Purchase BBond</span>
+                    {/* <span>Purchase BBond</span> */}
                     <button
-                      type="button"
-                      className="px-6  py-2.5 border-2 solid rounded-2xl text-white font-medium text-xs leading-tight uppercase shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-blue-800 active:shadow-lg transition duration-150 ease-in-out"
+                      //type="button"
+                      //class="nnn"
+                      // className="px-6  py-2.5 border-2 solid rounded-2xl text-white font-medium text-xs leading-tight uppercase shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-blue-800 active:shadow-lg transition duration-150 ease-in-out"
+                      onClick={onReward}
+                      className={earnings.eq(0) || !canClaimReward ? 'shinyButtonDisabled' : 'shinyButton'}
+                      disabled={earnings.eq(0) || !canClaimReward}
                     >
-                      Purchase
+                      Claim
                     </button>
                   </div>
                   <div>
                   <div className="flex-grow h-px bg-gray-400 mb-4"></div>
                   <div className="w-full flex justify-between items-center">
-                    <span>Redeem Bomb</span>
-                    <button
-                      type="button"
-                      className="px-6  py-2.5 border-2 solid rounded-2xl text-white font-medium text-xs leading-tight uppercase shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-blue-800 active:shadow-lg transition duration-150 ease-in-out"
+                    
+                    <Button
+                      // type="button"
+                      // className="${approveStatus === ApprovalState.NOT_APPROVED ? 'shinyButton' : 'shinyButtonDisabled'} px-6  py-2.5 border-2 solid rounded-2xl text-white font-medium text-xs leading-tight uppercase shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-blue-800 active:shadow-lg transition duration-150 ease-in-out"
+                      onClick={approve}
+                      disabled={approveStatus !== ApprovalState.NOT_APPROVED}
+                      className={approveStatus === ApprovalState.NOT_APPROVED ? 'shinyButton' : 'shinyButtonDisabled'}
+                      //style={{marginTop: '20px'}}
+                      
                     >
-                      Redeem
-                    </button>
+                      deposit
+                    </Button>
                   </div>
                   </div>
                 </div>
@@ -159,6 +301,48 @@ flex-direction: column;
             </div>
             <p class="text-gray-100 text-base mb-4">
               Stake your LP tokens in our farms to start earning $BSHARE
+              <br></br>
+              {/* <ProgressCountdown base={moment().toDate()} hideBar={true} deadline={to} description="Next Epoch" />
+              {Number(currentEpoch)}
+              <CountUp style={{ fontSize: '25px' }} end={TVL} separator="," prefix="$" />
+              {scalingFactor} BTC this is live twap */}
+              
+               {/* BOMB Price
+               <br></br>
+               <span>
+               {bombPriceInBNB ? bombPriceInBNB : '-.----'} BTC
+               <br></br>
+               ${bombPriceInDollars ? roundAndFormatNumber(bombPriceInDollars, 2) : '-.--'} / BOMB
+               </span>
+
+               <br></br>
+               <span>
+               Circulating Supply: {roundAndFormatNumber(bombCirculatingSupply, 2)} <br />
+                Total Supply: {roundAndFormatNumber(bombTotalSupply, 2)}
+               </span> */}
+
+
+               {/* BShare
+               <br></br>
+               {bSharePriceInBNB ? bSharePriceInBNB : '-.----'} BNB
+                <br></br>
+                ${bSharePriceInDollars ? bSharePriceInDollars : '-.--'} / BSHARE
+                <br></br>
+                Circulating Supply: {roundAndFormatNumber(bShareCirculatingSupply, 2)} <br />
+                Total Supply: {roundAndFormatNumber(bShareTotalSupply, 2)} */}
+
+
+              {/* 
+                BBOND
+                <br></br>
+                {tBondPriceInBNB ? tBondPriceInBNB : '-.----'} BTC
+                <br></br>
+                ${tBondPriceInDollars ? tBondPriceInDollars : '-.--'} / BBOND
+                <br></br>
+                Circulating Supply: {roundAndFormatNumber(tBondCirculatingSupply, 2)} <br />
+                Total Supply:{roundAndFormatNumber(tBondTotalSupply, 2)} */}
+
+
             </p>
             <div className="flex mb-2 mt-16">
               <p className="text-4xl font-semibold text-white">BOMB-BTCB</p>
