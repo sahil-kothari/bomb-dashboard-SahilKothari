@@ -5,7 +5,9 @@ import useBondsPurchasable from '../../hooks/useBondsPurchasable';
 import {getDisplayBalance} from '../../utils/formatBalance';
 import useBondStats from '../../hooks/useBondStats';
 import useBombStats from '../../hooks/useBombStats';
+import useModal from '../../hooks/useModal';
 import ExchangeStat from './components/ExchangeStat';
+import ExchangeModal from './components/ExchangeModal';
 import styled from 'styled-components';
 import useTotalStakedOnBoardroom from '../../hooks/useTotalStakedOnBoardroom';
 import useBombFinance from '../../hooks/useBombFinance';
@@ -18,6 +20,7 @@ import {useTransactionAdder} from '../../state/transactions/hooks';
 import useFetchBoardroomAPR from '../../hooks/useFetchBoardroomAPR';
 import useHarvestFromBoardroom from '../../hooks/useHarvestFromBoardroom';
 import useClaimRewardCheck from '../../hooks/boardroom/useClaimRewardCheck';
+import useCatchError from '../../hooks/useCatchError';
 import usebShareStats from '../../hooks/usebShareStats';
 import {Box, Button, Card, CardContent, Typography} from '@material-ui/core';
 import ExchangeCard from './components/ExchangeCard';
@@ -28,6 +31,7 @@ import useTreasuryAllocationTimes from '../../hooks/useTreasuryAllocationTimes';
 import useCurrentEpoch from '../../hooks/useCurrentEpoch';
 import CountUp from 'react-countup';
 import useCashPriceInEstimatedTWAP from '../../hooks/useCashPriceInEstimatedTWAP';
+import useTokenBalance from '../../hooks/useTokenBalance';
 import { roundAndFormatNumber } from '../../0x';
 //import {handleBuyBonds} from '../../bond/Bond';
 
@@ -41,6 +45,8 @@ import { roundAndFormatNumber } from '../../0x';
   //   },
   //   [bombFinance, addTransaction],
   // );
+  
+  
   
 
 function Dashboard() {
@@ -92,6 +98,7 @@ function Dashboard() {
   const cashPrice = useCashPriceInLastTWAP();
   const cashStat = useCashPriceInEstimatedTWAP();
   const canClaimReward = useClaimRewardCheck();
+  const catchError = useCatchError();
   const currentEpoch = useCurrentEpoch();
   const earnings = useEarningsOnBoardroom();
   const scalingFactor = useMemo(() => (cashStat ? Number(cashStat.priceInDollars).toFixed(4) : null), [cashStat]);
@@ -105,6 +112,21 @@ function Dashboard() {
   const isBondPurchasable = useMemo(() => Number(bondStat?.tokenInFtm) < 1.01, [bondStat]);
   const isBondPayingPremium = useMemo(() => Number(bondStat?.tokenInFtm) >= 1.1, [bondStat]);
   const { to } = useTreasuryAllocationTimes();
+  //const balance = useTokenBalance(fromToken);
+
+  // const [onPresent, onDismiss] = useModal(
+  //   <ExchangeModal
+  //     title={action}
+  //     description={priceDesc}
+  //     max={balance}
+  //     onConfirm={(value) => {
+  //       onExchange(value);
+  //       onDismiss();
+  //     }}
+  //     action={action}
+  //     tokenName={fromTokenName}
+  //   />,
+  // );
 
 
   
@@ -441,8 +463,12 @@ flex-direction: column;
                 <div className="w-full flex justify-between items-center">
                   <span>Purchase BBond</span>
                   <button
-                    type="button"
-                    className="px-6  py-2.5 border-2 solid rounded-2xl text-white font-medium text-xs leading-tight uppercase shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-blue-800 active:shadow-lg transition duration-150 ease-in-out"
+                    className="shinyButton"
+                    disabled={approveStatus === ApprovalState.PENDING || approveStatus === ApprovalState.UNKNOWN}
+                    onClick={() => catchError(approve(), `Unable to approve `)}
+                    
+                    // type="button"
+                    // className="px-6  py-2.5 border-2 solid rounded-2xl text-white font-medium text-xs leading-tight uppercase shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-blue-800 active:shadow-lg transition duration-150 ease-in-out"
                   >
                     Purchase
                   </button>
@@ -454,6 +480,7 @@ flex-direction: column;
                   <button
                     type="button"
                     className="px-6  py-2.5 border-2 solid rounded-2xl text-white font-medium text-xs leading-tight uppercase shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-blue-800 active:shadow-lg transition duration-150 ease-in-out"
+                    //onClick={onPresent}
                   >
                     Redeem
                   </button>
